@@ -8,11 +8,26 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/urfave/cli/v2"
 )
 
 var pattern = regexp.MustCompile(`var\.([^}")\[\],]*)`)
 
 func main() {
+	app := &cli.App{
+		Name:   "tfv",
+		Usage:  "generate Terraform variables declaration",
+		Action: walkFiles,
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func walkFiles(c *cli.Context) error {
 	vars := make(map[string]struct{})
 	err := filepath.Walk("./", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -42,6 +57,7 @@ func main() {
   description = ""
 }`+"\n\n", v)
 	}
+	return nil
 }
 
 func extractVars(path string) ([]string, error) {
