@@ -1,6 +1,6 @@
-# tfv
+# Tfv
 
-tfv generates Terraform variable declarations from `var.foo` in *.tf files.
+Tfv generates Terraform variable declarations from `var.foo` in *.tf files that are not already declared.
 
 Only works on tf files in current directory, and generate empty description field for now.
 
