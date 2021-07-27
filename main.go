@@ -3,14 +3,19 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/urfave/cli/v2"
+	"golang.org/x/xerrors"
 )
+
+var outputTemplate = `variable "%s" {
+  description = ""
+}`
 
 var pattern = regexp.MustCompile(`var\.([^}")\[\],]*)`)
 
@@ -18,56 +23,62 @@ func main() {
 	app := &cli.App{
 		Name:   "tfv",
 		Usage:  "generate Terraform variables declaration",
-		Action: walkFiles,
+		Action: printVariables,
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%+v\n", err)
 	}
 }
 
-func walkFiles(c *cli.Context) error {
-	vars := make(map[string]struct{})
-	err := filepath.Walk("./", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if !strings.HasSuffix(info.Name(), ".tf") {
-			return nil
-		}
-		varsInFile, err := extractVars(path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, v := range varsInFile {
-			vars[v] = struct{}{}
-		}
-		return nil
-	})
+func printVariables(c *cli.Context) error {
+	vars, err := walkFiles()
 	if err != nil {
-		log.Fatalln(err)
+		return xerrors.Errorf("failed to walk files: %w", err)
 	}
-
-	for v := range vars {
-		fmt.Printf(`variable "%s" {
-  description = ""
-}`+"\n\n", v)
+	for _, v := range vars {
+		fmt.Printf(outputTemplate+"\n\n", v)
 	}
 	return nil
 }
 
-func extractVars(path string) ([]string, error) {
-	f, err := os.Open(path)
+// カレントディレクトリのtfファイルからvar.fooを抽出し、変数名を返す
+func walkFiles() ([]string, error) {
+	vars := make(map[string]struct{})
+	entries, err := os.ReadDir("./")
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to readDir: %w", err)
 	}
-	defer f.Close()
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".tf") {
+			continue
+		}
+		file, err := os.Open(entry.Name())
+		if err != nil {
+			return nil, xerrors.Errorf("failed to open file: %w", err)
+		}
+		varsInFile, err := extractVars(file)
+		if err != nil {
+			return nil, xerrors.Errorf("failed to extract vars: %w", err)
+		}
+		for _, v := range varsInFile {
+			vars[v] = struct{}{}
+		}
+		file.Close()
+	}
+	results := make([]string, len(vars))
+	i := 0
+	for v := range vars {
+		results[i] = v
+		i++
+	}
+	return results, nil
+}
+
+func extractVars(file io.Reader) ([]string, error) {
 	var vars []string
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
 		matches := pattern.FindAllStringSubmatch(line, -1)
