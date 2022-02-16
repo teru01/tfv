@@ -1,4 +1,4 @@
-module tfv
+module github.com/teru01/tfv
 
 go 1.16
 
