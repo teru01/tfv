@@ -8,14 +8,11 @@ import (
 )
 
 var (
-	variablePattern = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
-	usedVarPattern  = regexp.MustCompile(`var\.([\w-]*)`)
+	variablePattern   = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
+	usedVarPattern    = regexp.MustCompile(`var\.([\w-]*)`)
+	quotePattern      = regexp.MustCompile(`"(.*?[^\\])"`)
+	varInQuotePattern = regexp.MustCompile(`\${var\.([\w-]*).*?}`)
 )
-
-// match: var.hoge var.hoge[0], var.hoge.foo, "++${var.goo}+++, "++%{ if var.name == }++"
-// not match: "http://var.hoge.com", "+$${var.hoge}+"
-// <<EOF, <<-EOF
-// EOF
 
 func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 	variables := make(map[string]string)
@@ -67,6 +64,14 @@ func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 	return variables, nil
 }
 
+// match: var.hoge var.hoge[0], var.hoge.foo, "++${var.goo}+++, "++%{ if var.name == }++"
+// not match: "http://var.hoge.com", "+$${var.hoge}+"
+// <<EOF, <<-EOF
+// EOF
+
+// var.にマッチするのを挙げて、クオートの中にいるのに${var.hoge}の形になってないやつを除く
+// クオートの中でvarにマッチするもの-クオート内で${var.hoge}にマッチするもの = クオート内で
+// クオートの中にいて、${}にマッチする
 func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 	usedVariables := make(map[string]struct{})
 	scanner := bufio.NewScanner(reader)
@@ -79,8 +84,28 @@ func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 			continue
 		}
 		matches := usedVarPattern.FindAllStringSubmatch(line, -1)
+		if len(matches) == 0 {
+			continue
+		}
 		for _, match := range matches {
 			usedVariables[match[1]] = struct{}{}
+		}
+		quoteMatches := quotePattern.FindAllStringSubmatch(line, -1)
+
+		notVarInQuote := make(map[string]struct{})
+		for _, qMatch := range quoteMatches {
+			varMatch := usedVarPattern.FindAllStringSubmatch(qMatch[1], -1)
+			for _, vm := range varMatch {
+				notVarInQuote[vm[1]] = struct{}{}
+			}
+
+			matchesInQuote := varInQuotePattern.FindAllStringSubmatch(qMatch[1], -1)
+			for _, m := range matchesInQuote {
+				delete(notVarInQuote, m[1])
+			}
+		}
+		for forDelete := range notVarInQuote {
+			delete(usedVariables, forDelete)
 		}
 	}
 	return usedVariables, nil

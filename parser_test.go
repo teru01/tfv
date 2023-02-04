@@ -121,14 +121,14 @@ func TestCollectUsedVars(t *testing.T) {
 		{
 			name: "collect nothing",
 			in: `locals {
-	env = "dev"
-}
-	
-# Firehose
-resource "aws_cloudwatch_log_group" "sample" {
-	name              = "/aws/kinesisfirehose/myvar"
-	retention_in_days = 20
-}`,
+			env = "dev"
+		}
+
+		# Firehose
+		resource "aws_cloudwatch_log_group" "sample" {
+			name              = "/aws/kinesisfirehose/myvar"
+			retention_in_days = 20
+		}`,
 			out: map[string]struct{}{},
 		},
 		{
@@ -145,6 +145,24 @@ resource "aws_cloudwatch_log_group" "sample" {
 			out: map[string]struct{}{
 				"hoge":           {},
 				"retention_days": {},
+			},
+		},
+		{
+			name: "collect only ${var.foo} style in quote",
+			in: `locals {
+			env = "dev"
+		}
+
+		# Firehose
+		resource "aws_cloudwatch_log_group" "sample" {
+			url              = lookup(var.somemap, "http://semvar.co.jp/${var.hoge}/${var.foo}/%{ if var.name != "john" }${var.first_name}%{ else }unnamed%{ endif }")
+		}`,
+			out: map[string]struct{}{
+				"somemap":    {},
+				"hoge":       {},
+				"foo":        {},
+				"first_name": {},
+				// var.name can not be collected for now.
 			},
 		},
 	}

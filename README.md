@@ -31,4 +31,6 @@ variable "my_bucket_name" {
 
 ```
 
+currently references to a variable inside `%{}` expression is not supported.
+
 
