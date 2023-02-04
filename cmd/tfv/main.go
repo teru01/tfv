@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -30,9 +31,17 @@ func main() {
 				Usage: "suffix of generated files",
 			},
 		},
-		Name:   "tfv",
-		Usage:  "Terraform variables generator",
-		Action: core.Execute,
+		Name:  "tfv",
+		Usage: "Terraform variables generator",
+		Action: func(ctx *cli.Context) error {
+			variables, tfvars, err := core.GenerateVariables(ctx)
+			if err != nil {
+				return err
+			}
+			fmt.Println(variables)
+			fmt.Println(tfvars)
+			return nil
+		},
 	}
 
 	err := app.Run(os.Args)
