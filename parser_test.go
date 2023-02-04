@@ -153,6 +153,7 @@ func TestCollectUsedVars(t *testing.T) {
 resource "aws_cloudwatch_log_group" "sample" {
 	name              = "/aws/kinesisfirehose/myvar/${var.hoge}"
 	retention_in_days = var.retention_days
+	value = foovar.value
 }`,
 			out: map[string]struct{}{
 				"hoge":           {},

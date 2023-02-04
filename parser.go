@@ -9,7 +9,7 @@ import (
 
 var (
 	variablePattern   = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
-	usedVarPattern    = regexp.MustCompile(`var\.([\w-]*)`)
+	usedVarPattern    = regexp.MustCompile(`[^\w]var\.([\w-]*)`)
 	quotePattern      = regexp.MustCompile(`"(.*?[^\\])"`)
 	varInQuotePattern = regexp.MustCompile(`\${var\.([\w-]*).*?}`)
 	heredocPattern    = regexp.MustCompile(`<<-?([^"]*)`)
