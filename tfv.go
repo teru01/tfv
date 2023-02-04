@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/urfave/cli/v2"
 )
 
 var outputTemplate = `variable "%s" {
-	description = ""
+  description = ""
 }`
 
 type tfVariable struct {
@@ -22,25 +23,26 @@ type tfVariable struct {
 type tfVariables map[string]tfVariable
 
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
-	var variableBlocks tfVariables
-	var usedVars map[string]struct{}
+	variableBlocks := make(tfVariables)
+	usedVars := make(map[string]struct{})
 
 	entries, err := os.ReadDir(ctx.String("dir"))
 	if err != nil {
 		return "", "", fmt.Errorf("path %v: %w", ctx.String("dir"), err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".tf") {
+		path := filepath.Join(ctx.String("dir"), entry.Name())
+		if entry.IsDir() || !strings.HasSuffix(path, ".tf") {
 			return "", "", nil
 		}
-		file, err := os.Open(entry.Name())
+		file, err := os.Open(path)
 		if err != nil {
-			return "", "", fmt.Errorf("open %v: %w", entry.Name(), err)
+			return "", "", fmt.Errorf("open %v: %w", path, err)
 		}
 		defer file.Close()
 
-		var copiedFile *bytes.Buffer
-		teeFile := io.TeeReader(file, copiedFile)
+		buf := &bytes.Buffer{}
+		teeFile := io.TeeReader(file, buf)
 
 		declaredVars, err := collectDeclaredVariables(teeFile)
 		if err != nil {
@@ -50,7 +52,7 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 			variableBlocks[k] = v
 		}
 
-		vu, err := collectUsedVariables(copiedFile)
+		vu, err := collectUsedVariables(buf)
 		if err != nil {
 			return "", "", fmt.Errorf("collect used variables: %w", err)
 		}
@@ -86,10 +88,10 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 		}
 	}
 
-	var b strings.Builder
+	var output []string
 	for _, v := range variableBlocks {
-		fmt.Fprintf(&b, v.block+"\n")
+		output = append(output, v.block)
 	}
 
-	return b.String(), "", nil
+	return strings.Join(output, "\n\n"), "", nil
 }
