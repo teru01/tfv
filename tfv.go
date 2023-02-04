@@ -1,11 +1,10 @@
-package main
+package core
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -15,26 +14,13 @@ import (
 )
 
 var outputTemplate = `variable "%s" {
-  description = ""
-}`
+	description = ""
+  }`
 
 var pattern = regexp.MustCompile(`var\.([^}")\[\],\s]*)`)
 var pattrnForExtractVariables = regexp.MustCompile(`variable\s*"(.*)"`)
 
-func main() {
-	app := &cli.App{
-		Name:   "tfv",
-		Usage:  "generate Terraform variables declaration",
-		Action: printVariables,
-	}
-
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatalf("%+v\n", err)
-	}
-}
-
-func printVariables(c *cli.Context) error {
+func PrintVariables(c *cli.Context) error {
 	vars, err := walkFiles()
 	if err != nil {
 		return xerrors.Errorf("failed to walk files: %w", err)
