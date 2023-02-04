@@ -30,10 +30,16 @@ locals {
 			out: map[string]string{},
 		},
 		{
+			name: "collect simplest variable",
+			in:   `variable "foobar" {}`,
+			out:  map[string]string{"foobar": `variable "foobar" {}`},
+		},
+		{
 			name: "collect simple variables",
 			in: `
 variable "region" {
 	description = "region"
+
 	default     = "ap-northeast-1"
 }
 	
@@ -44,6 +50,7 @@ variable "environment" {
 			out: map[string]string{
 				"region": `variable "region" {
 	description = "region"
+
 	default     = "ap-northeast-1"
 }`,
 				"environment": `variable "environment" {

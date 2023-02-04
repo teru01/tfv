@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var variablePattern = regexp.MustCompile(`^variable "(.*?)" {$`)
+var variablePattern = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
 
 func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 	variables := make(map[string]string)
@@ -33,9 +33,13 @@ func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 		}
 		match := variablePattern.FindStringSubmatch(line)
 		if len(match) > 0 {
-			inVariableBlock = true
 			currentVariableName = match[1]
+			if len(match) == 3 && match[2] == "}" {
+				variables[currentVariableName] = line
+				continue
+			}
 			variableBody = append(variableBody, line)
+			inVariableBlock = true
 			continue
 		}
 		if inVariableBlock {
