@@ -13,7 +13,7 @@ func TestCollectDeclaredVariables(t *testing.T) {
 	type testCase struct {
 		name string
 		in   string
-		out  map[string]string
+		out  tfVariables
 	}
 
 	cases := []testCase{
@@ -26,14 +26,18 @@ resource "aws_ecr_repository" "app" {
 
 locals {
 	env = "dev"
-}  
+}
 `,
-			out: map[string]string{},
+			out: tfVariables{},
 		},
 		{
 			name: "collect simplest variable",
 			in:   `variable "foobar" {}`,
-			out:  map[string]string{"foobar": `variable "foobar" {}`},
+			out: tfVariables{
+				"foobar": tfVariable{
+					block: `variable "foobar" {}`,
+				},
+			},
 		},
 		{
 			name: "collect simple variables",
@@ -43,20 +47,24 @@ variable "region" {
 
 	default     = "ap-northeast-1"
 }
-	
+
 variable "environment" {
 	description = "foo"
 }
 `,
-			out: map[string]string{
-				"region": `variable "region" {
+			out: tfVariables{
+				"region": tfVariable{
+					block: `variable "region" {
 	description = "region"
 
 	default     = "ap-northeast-1"
 }`,
-				"environment": `variable "environment" {
+				},
+				"environment": tfVariable{
+					block: `variable "environment" {
 	description = "foo"
 }`,
+				},
 			},
 		},
 		{
@@ -64,18 +72,20 @@ variable "environment" {
 			in: `
 # variable "region" {
 # 	description = "region"
-# 
+#
 # 	default     = "ap-northeast-1"
 # }
-	
+
 variable "environment" {
 	description = "foo"
 }
 `,
-			out: map[string]string{
-				"environment": `variable "environment" {
+			out: tfVariables{
+				"environment": tfVariable{
+					block: `variable "environment" {
 	description = "foo"
 }`,
+				},
 			},
 		},
 		{
@@ -87,13 +97,15 @@ variable "foo" {
 		peak_time_min_capacity = number
 	})
 }`,
-			out: map[string]string{
-				"foo": `variable "foo" {
+			out: tfVariables{
+				"foo": tfVariable{
+					block: `variable "foo" {
 	type = object({
 		min_capacity           = number
 		peak_time_min_capacity = number
 	})
 }`,
+				},
 			},
 		},
 	}

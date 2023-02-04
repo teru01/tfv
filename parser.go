@@ -15,8 +15,8 @@ var (
 	heredocPattern    = regexp.MustCompile(`<<-?([^"]*)`)
 )
 
-func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
-	variables := make(map[string]string)
+func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
+	variables := make(tfVariables)
 	scanner := bufio.NewScanner(reader)
 	var (
 		inVariableBlock     bool
@@ -35,7 +35,9 @@ func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 		}
 		if inVariableBlock && line == "}" && nestBlockDepth == 0 {
 			variableBody = append(variableBody, line)
-			variables[currentVariableName] = strings.Join(variableBody, "\n")
+			variables[currentVariableName] = tfVariable{
+				block: strings.Join(variableBody, "\n"),
+			}
 			inVariableBlock = false
 			variableBody = nil
 			continue
@@ -44,7 +46,9 @@ func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 		if len(match) > 0 {
 			currentVariableName = match[1]
 			if len(match) == 3 && match[2] == "}" {
-				variables[currentVariableName] = line
+				variables[currentVariableName] = tfVariable{
+					block: line,
+				}
 				continue
 			}
 			variableBody = append(variableBody, line)
