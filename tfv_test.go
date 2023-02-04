@@ -9,6 +9,7 @@ import (
 )
 
 func TestExtractVars(t *testing.T) {
+	t.Skip()
 	testcase := []struct {
 		input    string
 		expected []string

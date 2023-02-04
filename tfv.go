@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -20,12 +22,38 @@ var pattern = regexp.MustCompile(`var\.([^}")\[\],\s]*)`)
 var pattrnForExtractVariables = regexp.MustCompile(`variable\s*"(.*)"`)
 
 func Execute(c *cli.Context) error {
-	vars, err := walkFiles()
+	err := filepath.WalkDir(c.String("dir"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return fmt.Errorf("path %v: %w", path, err)
+		}
+
+		if !strings.HasSuffix(path, ".tf") {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return fmt.Errorf("open %v: %w", path, err)
+		}
+		defer file.Close()
+
+		var copiedFile *bytes.Buffer
+		teeFile := io.TeeReader(file, copiedFile)
+
+		declaredVars, err := collectDeclaredVariables(teeFile)
+		if err != nil {
+			return fmt.Errorf("collect declared variables: %w", err)
+		}
+		usedVars, err := collectUsedVariables(copiedFile)
+		if err != nil {
+			return fmt.Errorf("collect used variables: %w", err)
+		}
+
+		fmt.Println(declaredVars, usedVars)
+		return nil
+	})
+
 	if err != nil {
 		return fmt.Errorf("failed to walk files: %w", err)
-	}
-	for _, v := range vars {
-		fmt.Printf(outputTemplate+"\n\n", v)
 	}
 	return nil
 }
