@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
-	"golang.org/x/xerrors"
 )
 
 var outputTemplate = `variable "%s" {
@@ -20,10 +19,10 @@ var outputTemplate = `variable "%s" {
 var pattern = regexp.MustCompile(`var\.([^}")\[\],\s]*)`)
 var pattrnForExtractVariables = regexp.MustCompile(`variable\s*"(.*)"`)
 
-func PrintVariables(c *cli.Context) error {
+func Execute(c *cli.Context) error {
 	vars, err := walkFiles()
 	if err != nil {
-		return xerrors.Errorf("failed to walk files: %w", err)
+		return fmt.Errorf("failed to walk files: %w", err)
 	}
 	for _, v := range vars {
 		fmt.Printf(outputTemplate+"\n\n", v)
@@ -37,7 +36,7 @@ func walkFiles() ([]string, error) {
 	varsDeclared := make([]string, 0)
 	entries, err := os.ReadDir("./")
 	if err != nil {
-		return nil, xerrors.Errorf("failed to readDir: %w", err)
+		return nil, fmt.Errorf("failed to readDir: %w", err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".tf") {
@@ -45,21 +44,21 @@ func walkFiles() ([]string, error) {
 		}
 		file, err := os.Open(entry.Name())
 		if err != nil {
-			return nil, xerrors.Errorf("failed to open file: %w", err)
+			return nil, fmt.Errorf("failed to open file: %w", err)
 		}
 		buf := &bytes.Buffer{}
 		tee := io.TeeReader(file, buf)
 
 		varsInFile, err := extractVars(tee)
 		if err != nil {
-			return nil, xerrors.Errorf("failed to extract vars: %w", err)
+			return nil, fmt.Errorf("failed to extract vars: %w", err)
 		}
 		for _, v := range varsInFile {
 			vars[v] = struct{}{}
 		}
 		vd, err := extractAlreadyDeclared(buf)
 		if err != nil {
-			return nil, xerrors.Errorf("failed to extract already declared vars: %w", err)
+			return nil, fmt.Errorf("failed to extract already declared vars: %w", err)
 		}
 		varsDeclared = append(varsDeclared, vd...)
 		file.Close()
@@ -97,7 +96,7 @@ func extractAlreadyDeclared(file io.Reader) ([]string, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, xerrors.Errorf("failed to scan: %w", err)
+		return nil, fmt.Errorf("failed to scan: %w", err)
 	}
 	return vars, nil
 }
