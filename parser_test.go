@@ -137,7 +137,7 @@ func TestCollectUsedVars(t *testing.T) {
 	env = "dev"
 }
 	
-# Firehose
+# Firehose var.hose
 resource "aws_cloudwatch_log_group" "sample" {
 	name              = "/aws/kinesisfirehose/myvar/${var.hoge}"
 	retention_in_days = var.retention_days
@@ -163,6 +163,29 @@ resource "aws_cloudwatch_log_group" "sample" {
 				"foo":        {},
 				"first_name": {},
 				// var.name can not be collected for now.
+			},
+		},
+		{
+			name: "collect with heredoc",
+			in: `
+resource "aws_cloudwatch_log_group" "sample" {
+	name              = "/aws/kinesisfirehose/myvar/${var.hoge}"
+	retention_in_days = var.retention_days
+	query = <<EOF
+		inside $heredoc ${heredoc}
+		inside $heredoc ${heredoc}
+EOF
+	num = var.num
+	word = <<-EOL
+inside $eol ${heredoc_eol}
+EOL
+	count = var.count
+}`,
+			out: map[string]struct{}{
+				"hoge":           {},
+				"retention_days": {},
+				"num":            {},
+				"count":          {},
 			},
 		},
 	}

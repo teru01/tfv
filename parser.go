@@ -12,6 +12,7 @@ var (
 	usedVarPattern    = regexp.MustCompile(`var\.([\w-]*)`)
 	quotePattern      = regexp.MustCompile(`"(.*?[^\\])"`)
 	varInQuotePattern = regexp.MustCompile(`\${var\.([\w-]*).*?}`)
+	heredocPattern    = regexp.MustCompile(`<<-?([^"]*)`)
 )
 
 func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
@@ -69,20 +70,34 @@ func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 // <<EOF, <<-EOF
 // EOF
 
-// var.にマッチするのを挙げて、クオートの中にいるのに${var.hoge}の形になってないやつを除く
-// クオートの中でvarにマッチするもの-クオート内で${var.hoge}にマッチするもの = クオート内で
-// クオートの中にいて、${}にマッチする
 func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 	usedVariables := make(map[string]struct{})
 	scanner := bufio.NewScanner(reader)
+	var heredocMarker string
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			return nil, err
 		}
 		line := scanner.Text()
+
 		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
 			continue
 		}
+
+		if heredocMarker != "" && strings.TrimSpace(line) == heredocMarker {
+			heredocMarker = ""
+			continue
+		} else if heredocMarker != "" {
+			// inside heredoc
+			continue
+		}
+		heredocMatches := heredocPattern.FindStringSubmatch(line)
+		if len(heredocMatches) > 0 {
+			heredocMarker = heredocMatches[1]
+			// start heredoc
+			continue
+		}
+
 		matches := usedVarPattern.FindAllStringSubmatch(line, -1)
 		if len(matches) == 0 {
 			continue
