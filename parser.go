@@ -7,7 +7,15 @@ import (
 	"strings"
 )
 
-var variablePattern = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
+var (
+	variablePattern = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
+	usedVarPattern  = regexp.MustCompile(`var\.([\w-]*)`)
+)
+
+// match: var.hoge var.hoge[0], var.hoge.foo, "++${var.goo}+++, "++%{ if var.name == }++"
+// not match: "http://var.hoge.com", "+$${var.hoge}+"
+// <<EOF, <<-EOF
+// EOF
 
 func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 	variables := make(map[string]string)
@@ -24,6 +32,9 @@ func collectDeclaredVariables(reader io.Reader) (map[string]string, error) {
 			return nil, err
 		}
 		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+			continue
+		}
 		if inVariableBlock && line == "}" && nestBlockDepth == 0 {
 			variableBody = append(variableBody, line)
 			variables[currentVariableName] = strings.Join(variableBody, "\n")
@@ -64,7 +75,13 @@ func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 			return nil, err
 		}
 		line := scanner.Text()
-		_ = line
+		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+			continue
+		}
+		matches := usedVarPattern.FindAllStringSubmatch(line, -1)
+		for _, match := range matches {
+			usedVariables[match[1]] = struct{}{}
+		}
 	}
 	return usedVariables, nil
 }
