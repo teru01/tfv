@@ -41,8 +41,8 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 		}
 		defer file.Close()
 
-		buf := &bytes.Buffer{}
-		teeFile := io.TeeReader(file, buf)
+		var copiedFile bytes.Buffer
+		teeFile := io.TeeReader(file, &copiedFile)
 
 		declaredVars, err := collectDeclaredVariables(teeFile)
 		if err != nil {
@@ -52,7 +52,7 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 			variableBlocks[k] = v
 		}
 
-		vu, err := collectUsedVariables(buf)
+		vu, err := collectUsedVariables(&copiedFile)
 		if err != nil {
 			return "", "", fmt.Errorf("collect used variables: %w", err)
 		}
