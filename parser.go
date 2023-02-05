@@ -31,7 +31,7 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 			return nil, err
 		}
 		line := scanner.Text()
-		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.HasPrefix(strings.TrimSpace(line), "//") {
 			continue
 		}
 		if inVariableBlock && line == "}" && nestBlockDepth == 0 {
@@ -81,7 +81,7 @@ func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 		}
 		line := scanner.Text()
 
-		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.HasPrefix(strings.TrimSpace(line), "//") {
 			continue
 		}
 

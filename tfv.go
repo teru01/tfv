@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/urfave/cli/v2"
 )
 
@@ -94,4 +96,16 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 	}
 
 	return strings.Join(output, "\n\n"), "", nil
+}
+
+func collectDeclaredTfvars(path string) (map[string]struct{}, error) {
+	var config map[string]*hcl.Attribute
+	err := hclsimple.DecodeFile(path, nil, &config)
+	if err != nil {
+		return nil, fmt.Errorf("decode file: %w", err)
+	}
+	for k, v := range config {
+		fmt.Printf("Configuration is %v: %v %T\n", k, v.Expr, v)
+	}
+	return nil, nil
 }
