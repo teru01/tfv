@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,6 +21,11 @@ type tfVariable struct {
 }
 
 type tfVariables map[string]tfVariable
+
+type tfvarBlock struct {
+	start int
+	end   int
+}
 
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
 	variableBlocks := make(tfVariables)
@@ -78,8 +81,8 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 		}
 	}
 
+	var keysToDelete []string
 	if ctx.Bool("sync") {
-		var keysToDelete []string
 		for k, v := range variableBlocks {
 			if !v.used {
 				keysToDelete = append(keysToDelete, k)
@@ -90,22 +93,23 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 		}
 	}
 
-	var output []string
+	var tfvarsLine []string
+	filename := ctx.String("tfvars-file")
+	if filename != "" {
+		file, err := os.Open(filename)
+		if err != nil {
+			return "", "", fmt.Errorf("open tfvars file: %w", err)
+		}
+		tfvarsLine, err = createTfVars(file, keysToDelete)
+		if err != nil {
+			return "", "", fmt.Errorf("create tfvar: %w", err)
+		}
+	}
+
+	var outputVariables []string
 	for _, v := range variableBlocks {
-		output = append(output, v.block)
+		outputVariables = append(outputVariables, v.block)
 	}
 
-	return strings.Join(output, "\n\n"), "", nil
-}
-
-func collectDeclaredTfvars(path string) (map[string]struct{}, error) {
-	var config map[string]*hcl.Attribute
-	err := hclsimple.DecodeFile(path, nil, &config)
-	if err != nil {
-		return nil, fmt.Errorf("decode file: %w", err)
-	}
-	for k, v := range config {
-		fmt.Printf("Configuration is %v: %v %T\n", k, v.Expr, v)
-	}
-	return nil, nil
+	return strings.Join(outputVariables, "\n\n"), strings.Join(tfvarsLine, "\n"), nil
 }
