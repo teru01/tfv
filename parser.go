@@ -8,11 +8,12 @@ import (
 )
 
 var (
-	variablePattern   = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
-	usedVarPattern    = regexp.MustCompile(`[^\w]var\.([\w-]*)`)
-	quotePattern      = regexp.MustCompile(`"(.*?[^\\])"`)
-	varInQuotePattern = regexp.MustCompile(`[^$]\${var\.([\w-]*).*?}`)
-	heredocPattern    = regexp.MustCompile(`<<-?([^"]*)`)
+	variablePattern        = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
+	usedVarPattern         = regexp.MustCompile(`([^\w\.]|^)var\.([\w-]*)`)
+	quotePattern           = regexp.MustCompile(`"(.*?[^\\])"`)
+	quoteSeparationPattern = regexp.MustCompile(`".*?[^\\]"|[^"\s]+`)
+	varInQuotePattern      = regexp.MustCompile(`[^$]\${var\.([\w-]*).*?}`)
+	heredocPattern         = regexp.MustCompile(`<<-?([^"]*)`)
 )
 
 func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
@@ -69,11 +70,7 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 	return variables, nil
 }
 
-// match: var.hoge var.hoge[0], var.hoge.foo, "++${var.goo}+++, "++%{ if var.name == }++"
-// not match: "http://var.hoge.com", "+$${var.hoge}+"
-// <<EOF, <<-EOF
-// EOF
-
+// not implemented %{}, and /* */
 func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 	usedVariables := make(map[string]struct{})
 	scanner := bufio.NewScanner(reader)
@@ -91,40 +88,36 @@ func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 		if heredocMarker != "" && strings.TrimSpace(line) == heredocMarker {
 			heredocMarker = ""
 			continue
-		} else if heredocMarker != "" {
-			// inside heredoc
-			continue
 		}
 		heredocMatches := heredocPattern.FindStringSubmatch(line)
 		if len(heredocMatches) > 0 {
-			heredocMarker = heredocMatches[1]
 			// start heredoc
+			heredocMarker = heredocMatches[1]
 			continue
 		}
-
-		matches := usedVarPattern.FindAllStringSubmatch(line, -1)
-		if len(matches) == 0 {
-			continue
-		}
-		for _, match := range matches {
-			usedVariables[match[1]] = struct{}{}
-		}
-		quoteMatches := quotePattern.FindAllStringSubmatch(line, -1)
-
-		notVarInQuote := make(map[string]struct{})
-		for _, qMatch := range quoteMatches {
-			varMatch := usedVarPattern.FindAllStringSubmatch(qMatch[1], -1)
-			for _, vm := range varMatch {
-				notVarInQuote[vm[1]] = struct{}{}
-			}
-
-			matchesInQuote := varInQuotePattern.FindAllStringSubmatch(qMatch[1], -1)
+		if heredocMarker != "" {
+			matchesInQuote := varInQuotePattern.FindAllStringSubmatch(line, -1)
 			for _, m := range matchesInQuote {
-				delete(notVarInQuote, m[1])
+				usedVariables[m[1]] = struct{}{}
 			}
+			continue
 		}
-		for forDelete := range notVarInQuote {
-			delete(usedVariables, forDelete)
+
+		matches := quoteSeparationPattern.FindAllString(line, -1)
+		for _, match := range matches {
+			if match[0] == '"' {
+				// inside quote
+				matchesInQuote := varInQuotePattern.FindAllStringSubmatch(match, -1)
+				for _, m := range matchesInQuote {
+					usedVariables[m[1]] = struct{}{}
+				}
+			} else {
+				// outside quote
+				varMatch := usedVarPattern.FindAllStringSubmatch(match, -1)
+				for _, m := range varMatch {
+					usedVariables[m[2]] = struct{}{}
+				}
+			}
 		}
 	}
 	return usedVariables, nil

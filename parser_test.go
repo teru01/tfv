@@ -168,7 +168,7 @@ resource "aws_cloudwatch_log_group" "sample" {
 
 		# Firehose
 		resource "aws_cloudwatch_log_group" "sample" {
-			url              = lookup(var.somemap, "http://semvar.co.jp/${var.hoge}/${var.foo}/%{ if var.name != "john" }$${var.my-first-name} = ${var.first_name}%{ else }unnamed%{ endif }")
+			url              = lookup(var.somemap, "http://semvar.co.jp/var.orange/${var.hoge}/${var.foo}/%{ if var.name != "john" }$${var.my-first-name} = ${var.first_name}%{ else }unnamed%{ endif }")
 		}`,
 			out: map[string]struct{}{
 				"somemap":    {},
@@ -195,10 +195,13 @@ EOL
 	count = var.count
 }`,
 			out: map[string]struct{}{
-				"hoge":           {},
-				"retention_days": {},
-				"num":            {},
-				"count":          {},
+				"hoge":                 {},
+				"retention_days":       {},
+				"num":                  {},
+				"heredoc_parentheses2": {},
+				"heredoc_parentheses4": {},
+				"heredoc_eol":          {},
+				"count":                {},
 			},
 		},
 	}
