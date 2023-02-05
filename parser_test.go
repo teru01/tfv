@@ -68,6 +68,40 @@ variable "environment" {
 			},
 		},
 		{
+			name: "collect simple variables with multiline comment",
+			in: `
+variable "region" {
+	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+/*
+variable "environment" {
+	description = "foo"
+}
+*/
+
+variable "book" {
+	description = "book"
+}
+`,
+			out: tfVariables{
+				"region": tfVariable{
+					block: `variable "region" {
+	description = "region"
+
+	default     = "ap-northeast-1"
+}`,
+				},
+				"book": tfVariable{
+					block: `variable "book" {
+	description = "book"
+}`,
+				},
+			},
+		},
+		{
 			name: "collect simple with comment",
 			in: `
 # variable "region" {
@@ -148,7 +182,7 @@ func TestCollectUsedVars(t *testing.T) {
 			in: `locals {
 	env = "dev"
 }
-	
+
 # Firehose var.hose
 resource "aws_cloudwatch_log_group" "sample" {
 	name              = "/aws/kinesisfirehose/myvar/${var.hoge}"
@@ -158,6 +192,31 @@ resource "aws_cloudwatch_log_group" "sample" {
 			out: map[string]struct{}{
 				"hoge":           {},
 				"retention_days": {},
+			},
+		},
+		{
+			name: "collect with multiline comment",
+			in: `locals {
+	env = "dev"
+}
+
+/*
+# Firehose var.hose
+resource "aws_cloudwatch_log_group" "sample" {
+	name              = "/aws/kinesisfirehose/myvar/${var.hoge}"
+	retention_in_days = var.retention_days
+	value = foovar.value
+}
+*/
+
+resource "cluster" "sample" {
+	value = var.cluster
+	desc = "${var.sound}++"
+}
+`,
+			out: map[string]struct{}{
+				"cluster": {},
+				"sound":   {},
 			},
 		},
 		{

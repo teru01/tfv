@@ -24,6 +24,7 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 		nestBlockDepth      int
 		currentVariableName string
 		variableBody        []string
+		inComment           bool
 	)
 
 	for scanner.Scan() {
@@ -31,9 +32,18 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 			return nil, err
 		}
 		line := scanner.Text()
-		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.HasPrefix(strings.TrimSpace(line), "//") {
+
+		if strings.HasPrefix(strings.TrimSpace(line), "/*") && !strings.HasSuffix(strings.TrimSpace(line), "*/") {
+			inComment = true
+			continue
+		} else if strings.HasPrefix(strings.TrimSpace(line), "*/") {
+			inComment = false
 			continue
 		}
+		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.HasPrefix(strings.TrimSpace(line), "//") || inComment {
+			continue
+		}
+
 		if inVariableBlock && line == "}" && nestBlockDepth == 0 {
 			variableBody = append(variableBody, line)
 			variables[currentVariableName] = tfVariable{
@@ -74,14 +84,24 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 	usedVariables := make(map[string]struct{})
 	scanner := bufio.NewScanner(reader)
-	var heredocMarker string
+	var (
+		heredocMarker string
+		inComment     bool
+	)
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			return nil, err
 		}
 		line := scanner.Text()
 
-		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.HasPrefix(strings.TrimSpace(line), "//") {
+		if strings.HasPrefix(strings.TrimSpace(line), "/*") && !strings.HasSuffix(strings.TrimSpace(line), "*/") {
+			inComment = true
+			continue
+		} else if strings.HasPrefix(strings.TrimSpace(line), "*/") {
+			inComment = false
+			continue
+		}
+		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.HasPrefix(strings.TrimSpace(line), "//") || inComment {
 			continue
 		}
 
