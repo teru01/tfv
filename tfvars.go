@@ -31,7 +31,7 @@ func collectDeclaredTfvars(reader io.Reader) (map[string]*tfvarBlock, error) {
 	return m, nil
 }
 
-func createTfVars(file io.Reader, keysToDelete []string) ([]string, error) {
+func buildTfVars(file io.Reader, keysToDelete []string) ([]string, error) {
 	var copiedFile bytes.Buffer
 	teeFile := io.TeeReader(file, &copiedFile)
 	tfvars, err := collectDeclaredTfvars(teeFile)

@@ -52,7 +52,7 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 		if err != nil {
 			return "", "", fmt.Errorf("open tfvars file: %w", err)
 		}
-		tfvarsLine, err = createTfVars(file, keysToDelete)
+		tfvarsLine, err = buildTfVars(file, keysToDelete)
 		if err != nil {
 			return "", "", fmt.Errorf("create tfvar: %w", err)
 		}

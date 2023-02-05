@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/teru01/tfv/core"
 	"github.com/urfave/cli/v2"
@@ -39,7 +42,17 @@ func main() {
 				return err
 			}
 			fmt.Println(variables)
-			fmt.Println(tfvars)
+
+			if ctx.String("tfvars-file") != "" && tfvars != "" {
+				file, err := os.OpenFile(ctx.String("tfvars-file")+ctx.String("suffix"), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+				if err != nil {
+					return err
+				}
+				_, err = io.Copy(file, bufio.NewReader(strings.NewReader(tfvars)))
+				if err != nil {
+					return err
+				}
+			}
 			return nil
 		},
 	}
