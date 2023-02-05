@@ -47,7 +47,7 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 
 	var tfvarsLine []string
 	filename := ctx.String("tfvars-file")
-	if filename != "" {
+	if filename != "" && ctx.Bool("sync") {
 		file, err := os.Open(filename)
 		if err != nil {
 			return "", "", fmt.Errorf("open tfvars file: %w", err)
