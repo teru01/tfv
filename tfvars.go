@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -48,8 +49,18 @@ func buildTfVars(file io.Reader, keysToDelete []string) ([]string, error) {
 	}
 	lines := strings.Split(string(l), "\n")
 
-	var tfvarsLine []string
+	var (
+		tfvarsLine []string
+		tfVarsList []*tfvarBlock
+	)
 	for _, v := range tfvars {
+		tfVarsList = append(tfVarsList, v)
+	}
+	// 定義順序を復元するためにソート
+	sort.Slice(tfVarsList, func(i, j int) bool {
+		return tfVarsList[i].start < tfVarsList[j].start
+	})
+	for _, v := range tfVarsList {
 		tfvarsLine = append(tfvarsLine, lines[v.start-1:v.end]...)
 	}
 	return tfvarsLine, nil
