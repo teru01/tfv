@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/urfave/cli/v2"
@@ -18,6 +19,7 @@ var outputTemplate = `variable "%s" {
 type tfVariable struct {
 	block string
 	used  bool
+	order int
 }
 
 type tfVariables map[string]tfVariable
@@ -58,12 +60,22 @@ func GenerateVariables(ctx *cli.Context) (string, string, error) {
 		}
 	}
 
-	var outputVariables []string
-	for _, v := range variableBlocks {
-		outputVariables = append(outputVariables, v.block)
-	}
+	return buildVariableString(variableBlocks), strings.Join(tfvarsLine, "\n"), nil
+}
 
-	return strings.Join(outputVariables, "\n\n"), strings.Join(tfvarsLine, "\n"), nil
+func buildVariableString(vars tfVariables) string {
+	var ov []tfVariable
+	var ovs []string
+	for _, v := range vars {
+		ov = append(ov, v)
+	}
+	sort.Slice(ov, func(i, j int) bool {
+		return ov[i].order < ov[j].order
+	})
+	for _, v := range ov {
+		ovs = append(ovs, v.block)
+	}
+	return strings.Join(ovs, "\n\n")
 }
 
 func buildVariableBlocks(dir string) (tfVariables, error) {
@@ -111,11 +123,13 @@ func buildVariableBlocks(dir string) (tfVariables, error) {
 			variableBlocks[used] = tfVariable{
 				block: variable.block,
 				used:  true,
+				order: variable.order,
 			}
 		} else {
 			variableBlocks[used] = tfVariable{
 				block: fmt.Sprintf(outputTemplate, used),
 				used:  true,
+				order: variable.order,
 			}
 		}
 	}

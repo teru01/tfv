@@ -150,7 +150,10 @@ variable "foo" {
 			t.Parallel()
 			result, err := collectDeclaredVariables(bufio.NewReader(strings.NewReader(tt.in)))
 			assert.NoError(t, err, tt.name)
-			assert.Equal(t, tt.out, result, tt.name)
+			assert.Equal(t, len(tt.out), len(result), tt.name)
+			for k, v := range result {
+				assert.Equal(t, tt.out[k].block, v.block, tt.name)
+			}
 		})
 	}
 }

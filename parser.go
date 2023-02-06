@@ -10,7 +10,6 @@ import (
 var (
 	variablePattern        = regexp.MustCompile(`^variable "(.*?)" {(}?)`)
 	usedVarPattern         = regexp.MustCompile(`([^\w\.]|^)var\.([\w-]*)`)
-	quotePattern           = regexp.MustCompile(`"(.*?[^\\])"`)
 	quoteSeparationPattern = regexp.MustCompile(`".*?[^\\]"|[^"\s]+`)
 	varInQuotePattern      = regexp.MustCompile(`[^$]\${var\.([\w-]*).*?}`)
 	heredocPattern         = regexp.MustCompile(`<<-?([^"]*)`)
@@ -27,6 +26,7 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 		inComment           bool
 	)
 
+	orderOfVariable := 1
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			return nil, err
@@ -48,7 +48,9 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 			variableBody = append(variableBody, line)
 			variables[currentVariableName] = tfVariable{
 				block: strings.Join(variableBody, "\n"),
+				order: orderOfVariable,
 			}
+			orderOfVariable++
 			inVariableBlock = false
 			variableBody = nil
 			continue
@@ -59,7 +61,9 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 			if len(match) == 3 && match[2] == "}" {
 				variables[currentVariableName] = tfVariable{
 					block: line,
+					order: orderOfVariable,
 				}
+				orderOfVariable++
 				continue
 			}
 			variableBody = append(variableBody, line)
@@ -80,7 +84,7 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 	return variables, nil
 }
 
-// not implemented %{}, and /* */
+// not implemented %{}
 func collectUsedVariables(reader io.Reader) (map[string]struct{}, error) {
 	usedVariables := make(map[string]struct{})
 	scanner := bufio.NewScanner(reader)
