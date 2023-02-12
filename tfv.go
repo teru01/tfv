@@ -29,8 +29,15 @@ type tfvarBlock struct {
 	end   int
 }
 
+type usedVariables map[string]*usedVar
+type usedVar struct {
+	declared bool
+}
+
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
-	variableBlocks, err := buildVariableBlocks(ctx.String("dir"))
+	usedVars, err := collectAllUsedVariables(ctx.String("dir"))
+
+	variableBlocks, err := buildVariableBlocksNew(usedVars, ctx.String("dir"))
 	if err != nil {
 		return "", "", fmt.Errorf("build variables blocks: %w", err)
 	}
@@ -76,6 +83,50 @@ func buildVariableString(vars tfVariables) string {
 		ovs = append(ovs, v.block)
 	}
 	return strings.Join(ovs, "\n\n")
+}
+
+func collectAllUsedVariables(dir string) (usedVariables, error) {
+	usedVars := make(usedVariables)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("path %v: %w", dir, err)
+	}
+	for _, entry := range entries {
+		path := filepath.Join(dir, entry.Name())
+		if entry.IsDir() || !strings.HasSuffix(path, ".tf") {
+			continue
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("open %v: %w", path, err)
+		}
+		defer file.Close()
+
+		vu, err := collectUsedVariables(file)
+		if err != nil {
+			return nil, fmt.Errorf("collect used variables: %w", err)
+		}
+		for k := range vu {
+			usedVars[k] = &usedVar{}
+		}
+	}
+
+	return usedVars, nil
+}
+
+func buildVariableBlocksNew(usedVars usedVariables, path string) (tfVariables, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open %v: %w", path, err)
+	}
+	defer file.Close()
+
+	declaredVars, err := collectDeclaredVariablesNew(file, usedVars)
+	if err != nil {
+		return nil, fmt.Errorf("collect declared variables: %w", err)
+	}
+
+	return declaredVars, nil
 }
 
 func buildVariableBlocks(dir string) (tfVariables, error) {
