@@ -158,6 +158,170 @@ variable "foo" {
 	}
 }
 
+func TestCollectDeclaredVariablesNewSync(t *testing.T) {
+	t.Parallel()
+
+	type input struct {
+		usedVars map[string]*usedVar
+		file     string
+	}
+	type testCase struct {
+		name string
+		in   input
+		out  string
+	}
+
+	cases := []testCase{
+		{
+			name: "collect simplest variable",
+			in: input{
+				file: `variable "foobar" {}
+`,
+				usedVars: map[string]*usedVar{
+					"foobar": {},
+				},
+			},
+			out: `variable "foobar" {}
+`,
+		},
+		{
+			name: "collect simple variables",
+			in: input{
+				file: `variable "foobar" {}
+variable "foo" {}
+variable "bar" {}
+variable "wasabi" {}
+`,
+				usedVars: map[string]*usedVar{
+					"foobar": {},
+					"wasabi": {},
+				},
+			},
+			out: `variable "foobar" {}
+variable "wasabi" {}
+`,
+		},
+		{
+			name: "collect simple variables",
+			in: input{
+				file: `variable "region" {
+	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+`,
+				usedVars: map[string]*usedVar{
+					"environment": {},
+				},
+			},
+			out: `
+variable "environment" {
+	description = "foo"
+}
+`,
+		},
+		{
+			name: "collect only one",
+			in: input{
+				file: `
+variable "region" {
+	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+
+variable "book" {
+	description = "book"
+}
+`,
+				usedVars: map[string]*usedVar{
+					"environment": {},
+				},
+			},
+			out: `
+
+variable "environment" {
+	description = "foo"
+}
+
+`,
+		},
+		{
+			name: "collect simple with comment",
+			in: input{
+				file: `
+# variable "region" {
+# 	description = "region"
+#
+# 	default     = "ap-northeast-1"
+# }
+
+variable "environment" {
+	description = "foo"
+}
+`,
+				usedVars: map[string]*usedVar{
+					"environment": {},
+				},
+			},
+			out: `
+# variable "region" {
+# 	description = "region"
+#
+# 	default     = "ap-northeast-1"
+# }
+
+variable "environment" {
+	description = "foo"
+}
+`,
+		},
+		{
+			name: "collect nothing",
+			in: input{
+				file: `
+variable "region" {
+	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+
+variable "book" {
+	description = "book"
+}
+`,
+				usedVars: map[string]*usedVar{},
+			},
+			out: `
+
+
+`,
+		},
+	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, err := collectDeclaredVariablesNew(bufio.NewReader(strings.NewReader(tt.in.file)), tt.in.usedVars, true)
+			assert.NoError(t, err, tt.name)
+			assert.Equal(t, tt.out, result, tt.name)
+		})
+	}
+}
+
 func TestCollectUsedVars(t *testing.T) {
 	t.Parallel()
 	type testCase struct {

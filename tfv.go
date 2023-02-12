@@ -37,37 +37,38 @@ type usedVar struct {
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
 	usedVars, err := collectAllUsedVariables(ctx.String("dir"))
 
-	variableBlocks, err := buildVariableBlocksNew(usedVars, ctx.String("dir"))
+	_, err = buildVariableBlocksNew(usedVars, ctx.String("dir"), ctx.Bool("sync"))
 	if err != nil {
 		return "", "", fmt.Errorf("build variables blocks: %w", err)
 	}
 
-	var keysToDelete []string
-	if ctx.Bool("sync") {
-		for k, v := range variableBlocks {
-			if !v.used {
-				keysToDelete = append(keysToDelete, k)
-			}
-		}
-		for _, key := range keysToDelete {
-			delete(variableBlocks, key)
-		}
-	}
+	// var keysToDelete []string
+	// if ctx.Bool("sync") {
+	// 	for k, v := range variableBlocks {
+	// 		if !v.used {
+	// 			keysToDelete = append(keysToDelete, k)
+	// 		}
+	// 	}
+	// 	for _, key := range keysToDelete {
+	// 		delete(variableBlocks, key)
+	// 	}
+	// }
 
-	var tfvarsLine []string
-	filename := ctx.String("tfvars-file")
-	if filename != "" && ctx.Bool("sync") {
-		file, err := os.Open(filename)
-		if err != nil {
-			return "", "", fmt.Errorf("open tfvars file: %w", err)
-		}
-		tfvarsLine, err = buildTfVars(file, keysToDelete)
-		if err != nil {
-			return "", "", fmt.Errorf("create tfvar: %w", err)
-		}
-	}
+	// var tfvarsLine []string
+	// filename := ctx.String("tfvars-file")
+	// if filename != "" && ctx.Bool("sync") {
+	// 	file, err := os.Open(filename)
+	// 	if err != nil {
+	// 		return "", "", fmt.Errorf("open tfvars file: %w", err)
+	// 	}
+	// 	tfvarsLine, err = buildTfVars(file, keysToDelete)
+	// 	if err != nil {
+	// 		return "", "", fmt.Errorf("create tfvar: %w", err)
+	// 	}
+	// }
 
-	return buildVariableString(variableBlocks), strings.Join(tfvarsLine, "\n"), nil
+	// return buildVariableString(variableBlocks), strings.Join(tfvarsLine, "\n"), nil
+	return "", "", nil
 }
 
 func buildVariableString(vars tfVariables) string {
@@ -114,16 +115,16 @@ func collectAllUsedVariables(dir string) (usedVariables, error) {
 	return usedVars, nil
 }
 
-func buildVariableBlocksNew(usedVars usedVariables, path string) (tfVariables, error) {
+func buildVariableBlocksNew(usedVars usedVariables, path string, sync bool) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("open %v: %w", path, err)
+		return "", fmt.Errorf("open %v: %w", path, err)
 	}
 	defer file.Close()
 
-	declaredVars, err := collectDeclaredVariablesNew(file, usedVars)
+	declaredVars, err := collectDeclaredVariablesNew(file, usedVars, sync)
 	if err != nil {
-		return nil, fmt.Errorf("collect declared variables: %w", err)
+		return "", fmt.Errorf("collect declared variables: %w", err)
 	}
 
 	return declaredVars, nil
