@@ -97,27 +97,33 @@ func collectDeclaredVariablesNew(reader io.Reader, usedVars usedVariables, sync 
 	lines := strings.Split(string(ls), "\n")
 	for i := 0; i < len(lines); i++ {
 		match := variablePattern.FindStringSubmatch(lines[i])
-		if len(match) > 0 {
-			currentVariableName = match[1]
-			if _, ok := usedVars[currentVariableName]; !ok {
-				if sync {
-					// 使われてないvariable
-					if len(match) == 3 && match[2] == "}" {
-						// variable "unused" {} のパターン
-						continue
-					}
-					j := i
-					for ; j < len(lines); j++ {
-						if lines[j] == "}" {
-							break
-						}
-					}
-					i = j + 1
-				}
-			} else {
-				usedVars[currentVariableName].declared = true
-			}
+		if len(match) == 0 {
+			variableFileLines = append(variableFileLines, lines[i])
+			continue
 		}
+		currentVariableName = match[1]
+		if _, ok := usedVars[currentVariableName]; !ok {
+			// 使われてないvariable
+
+			if !sync {
+				variableFileLines = append(variableFileLines, lines[i])
+				continue
+			}
+			if len(match) == 3 && match[2] == "}" {
+				// variable "unused" {} のパターン
+				continue
+			}
+			j := i
+			for ; j < len(lines); j++ {
+				if lines[j] == "}" {
+					break
+				}
+			}
+			i = j + 1
+		} else {
+			usedVars[currentVariableName].declared = true
+		}
+
 		if i >= len(lines) {
 			break
 		}

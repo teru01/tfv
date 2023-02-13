@@ -37,6 +37,9 @@ type usedVar struct {
 
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
 	usedVars, err := collectAllUsedVariables(ctx.String("dir"))
+	if err != nil {
+		return "", "", fmt.Errorf("collect used vars: %w", err)
+	}
 
 	_, err = buildVariableFile(usedVars, ctx.String("dir"), ctx.Bool("sync"))
 	if err != nil {
