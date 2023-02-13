@@ -25,6 +25,7 @@ type tfVariable struct {
 type tfVariables map[string]tfVariable
 
 type tfvarBlock struct {
+	name  string
 	start int
 	end   int
 }
@@ -37,7 +38,7 @@ type usedVar struct {
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
 	usedVars, err := collectAllUsedVariables(ctx.String("dir"))
 
-	_, err = buildVariableBlocksNew(usedVars, ctx.String("dir"), ctx.Bool("sync"))
+	_, err = buildVariableFile(usedVars, ctx.String("dir"), ctx.Bool("sync"))
 	if err != nil {
 		return "", "", fmt.Errorf("build variables blocks: %w", err)
 	}
@@ -115,7 +116,7 @@ func collectAllUsedVariables(dir string) (usedVariables, error) {
 	return usedVars, nil
 }
 
-func buildVariableBlocksNew(usedVars usedVariables, path string, sync bool) (string, error) {
+func buildVariableFile(usedVars usedVariables, path string, sync bool) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return "", fmt.Errorf("open %v: %w", path, err)

@@ -24,6 +24,7 @@ func collectDeclaredTfvars(reader io.Reader) (map[string]*tfvarBlock, error) {
 	m := make(map[string]*tfvarBlock)
 	for k, v := range config {
 		m[k] = &tfvarBlock{
+			name:  k,
 			start: v.Expr.Range().Start.Line,
 			end:   v.Expr.Range().End.Line,
 		}
@@ -32,20 +33,16 @@ func collectDeclaredTfvars(reader io.Reader) (map[string]*tfvarBlock, error) {
 	return m, nil
 }
 
-func buildTfVars(file io.Reader, keysToDelete []string) ([]string, error) {
+func buildTfVars(file io.Reader, keysToDelete map[string]struct{}) (string, error) {
 	var copiedFile bytes.Buffer
 	teeFile := io.TeeReader(file, &copiedFile)
 	tfvars, err := collectDeclaredTfvars(teeFile)
 	if err != nil {
-		return nil, fmt.Errorf("collect tfvars file: %w", err)
+		return "", fmt.Errorf("collect tfvars file: %w", err)
 	}
-	for _, key := range keysToDelete {
-		delete(tfvars, key)
-	}
-
 	l, err := io.ReadAll(&copiedFile)
 	if err != nil {
-		return nil, fmt.Errorf("read tfvar file: %w", err)
+		return "", fmt.Errorf("read tfvar file: %w", err)
 	}
 	lines := strings.Split(string(l), "\n")
 
@@ -60,8 +57,19 @@ func buildTfVars(file io.Reader, keysToDelete []string) ([]string, error) {
 	sort.Slice(tfVarsList, func(i, j int) bool {
 		return tfVarsList[i].start < tfVarsList[j].start
 	})
-	for _, v := range tfVarsList {
-		tfvarsLine = append(tfvarsLine, lines[v.start-1:v.end]...)
+
+	varsI := 0
+	for i := 0; i < len(lines); i++ {
+		if varsI < len(tfVarsList) && i == tfVarsList[varsI].start-1 {
+			v := tfVarsList[varsI]
+			varsI++
+			if _, ok := keysToDelete[v.name]; ok {
+				i = v.end - 1
+				continue
+			}
+		}
+		tfvarsLine = append(tfvarsLine, lines[i])
 	}
-	return tfvarsLine, nil
+
+	return strings.Join(tfvarsLine, "\n"), nil
 }
