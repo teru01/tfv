@@ -5,5 +5,27 @@ resource "my_resource" "myvar" {
 }
 
 locals {
-  foo = "Hello, %{if var.name != "%{if var.name != "${var.foo}"}${var.name}%{else}unnamed%{endif}"}${var.name}%{else}unnamed%{endif}!"
+  foo = <<EOF
+    python
+    ${var.limit} + ${var.requests}
+    rust
+  EOF
+}
+
+resource "my_server" "orange" {
+  # title      = var.moge
+  locations = var.locations
+
+  /*
+  apple {
+    teste = "sweet"
+    created_at = var.created_at
+  }
+  */
+
+  mogura {
+    meta = var.metadata
+  }
+
+  lang = var.lang
 }

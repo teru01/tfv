@@ -22,18 +22,22 @@ type usedVar struct {
 }
 
 func GenerateVariables(ctx *cli.Context) (string, string, error) {
-	usedVars, err := collectAllUsedVariables(ctx.String("dir"))
+	return generateVariables(ctx.Bool("sync"), ctx.String("dir"), ctx.String("variables-file"), ctx.String("tfvars-file"))
+}
+
+func generateVariables(sync bool, dir, variablesFile, tfVarsFile string) (string, string, error) {
+	usedVars, err := collectAllUsedVariables(dir)
 	if err != nil {
 		return "", "", fmt.Errorf("collect used vars: %w", err)
 	}
 
-	variables, keysToDelete, err := rebuildVariableFile(usedVars, ctx.String("dir"), ctx.Bool("sync"))
+	variables, keysToDelete, err := rebuildVariableFile(usedVars, variablesFile, sync)
 	if err != nil {
 		return "", "", fmt.Errorf("build variables blocks: %w", err)
 	}
 
-	filename := ctx.String("tfvars-file")
-	if filename != "" && ctx.Bool("sync") {
+	filename := tfVarsFile
+	if filename != "" && sync {
 		file, err := os.Open(filename)
 		if err != nil {
 			return "", "", fmt.Errorf("open tfvars file: %w", err)

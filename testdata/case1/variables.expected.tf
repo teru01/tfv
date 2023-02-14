@@ -39,3 +39,23 @@ variable "locations" {
   type        = list(string)
   description = ""
 }
+
+variable "expiration_days" {
+  description = ""
+}
+
+variable "lang" {
+  description = ""
+}
+
+variable "limit" {
+  description = ""
+}
+
+variable "metadata" {
+  description = ""
+}
+
+variable "requests" {
+  description = ""
+}

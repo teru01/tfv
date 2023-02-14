@@ -25,6 +25,11 @@ func main() {
 				Usage: "execute in sync mode (tfv generates variables without unused variables)",
 			},
 			&cli.StringFlag{
+				Value: "variables.tf",
+				Name:  "variables-file",
+				Usage: "load variables from `FILE`",
+			},
+			&cli.StringFlag{
 				Name:  "tfvars-file",
 				Usage: "load tfvars from `FILE`",
 			},
