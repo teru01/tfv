@@ -84,15 +84,15 @@ func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
 	return variables, nil
 }
 
-func collectDeclaredVariablesNew(reader io.Reader, usedVars usedVariables, sync bool) (string, error) {
+func rebuildDeclaredVariables(reader io.Reader, usedVars usedVariables, sync bool) (string, map[string]struct{}, error) {
 	var (
 		currentVariableName string
 		variableFileLines   []string
 	)
-
+	unusedVariables := make(map[string]struct{})
 	ls, err := io.ReadAll(reader)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	lines := strings.Split(string(ls), "\n")
 	for i := 0; i < len(lines); i++ {
@@ -104,7 +104,7 @@ func collectDeclaredVariablesNew(reader io.Reader, usedVars usedVariables, sync 
 		currentVariableName = match[1]
 		if _, ok := usedVars[currentVariableName]; !ok {
 			// 使われてないvariable
-
+			unusedVariables[currentVariableName] = struct{}{}
 			if !sync {
 				variableFileLines = append(variableFileLines, lines[i])
 				continue
@@ -129,7 +129,7 @@ func collectDeclaredVariablesNew(reader io.Reader, usedVars usedVariables, sync 
 		}
 		variableFileLines = append(variableFileLines, lines[i])
 	}
-	return strings.Join(variableFileLines, "\n"), nil
+	return strings.Join(variableFileLines, "\n"), unusedVariables, nil
 }
 
 // not implemented %{}

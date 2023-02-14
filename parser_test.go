@@ -158,7 +158,7 @@ variable "foo" {
 	}
 }
 
-func TestCollectDeclaredVariablesNewSync(t *testing.T) {
+func TestRebuildDeclaredVariablesSync(t *testing.T) {
 	t.Parallel()
 
 	type input struct {
@@ -315,7 +315,7 @@ variable "book" {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := collectDeclaredVariablesNew(bufio.NewReader(strings.NewReader(tt.in.file)), tt.in.usedVars, true)
+			result, _, err := rebuildDeclaredVariables(bufio.NewReader(strings.NewReader(tt.in.file)), tt.in.usedVars, true)
 			assert.NoError(t, err, tt.name)
 			assert.Equal(t, tt.out, result, tt.name)
 		})
