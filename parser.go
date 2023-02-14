@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -26,53 +27,68 @@ func rebuildDeclaredVariables(reader io.Reader, usedVars usedVariables, sync boo
 		variableFileLines   []string
 	)
 	unusedVariables := make(map[string]struct{})
-	ls, err := io.ReadAll(reader)
-	if err != nil {
-		return "", nil, err
-	}
-	lines := strings.Split(string(ls), "\n")
-	for i := 0; i < len(lines); i++ {
-		match := variablePattern.FindStringSubmatch(lines[i])
-		if len(match) == 0 {
-			variableFileLines = append(variableFileLines, lines[i])
-			continue
+
+	if reader != nil {
+		ls, err := io.ReadAll(reader)
+		if err != nil {
+			return "", nil, err
 		}
-		currentVariableName = match[1]
-		if _, ok := usedVars[currentVariableName]; !ok {
-			// 使われてないvariable
-			unusedVariables[currentVariableName] = struct{}{}
-			if !sync {
-				variableFileLines = append(variableFileLines, lines[i])
-				continue
-			}
-			if len(match) == 3 && match[2] == "}" {
-				// variable "unused" {} のパターン
-				continue
-			}
-			j := i
-			for ; j < len(lines); j++ {
-				if lines[j] == "}" {
-					break
+		lines := strings.Split(string(ls), "\n")
+		for i := 0; i < len(lines); i++ {
+			match := variablePattern.FindStringSubmatch(lines[i])
+			if len(match) == 0 {
+				if !(len(variableFileLines) == 0 && lines[i] == "") {
+					// ファイル先頭の空行は読み飛ばす
+					variableFileLines = append(variableFileLines, lines[i])
 				}
+				continue
 			}
-			i = j + 1
-		} else {
-			usedVars[currentVariableName].declared = true
-		}
+			currentVariableName = match[1]
+			if _, ok := usedVars[currentVariableName]; !ok {
+				// 使われてないvariable
+				unusedVariables[currentVariableName] = struct{}{}
+				if !sync {
+					variableFileLines = append(variableFileLines, lines[i])
+					continue
+				}
+				if len(match) == 3 && match[2] == "}" {
+					// variable "unused" {} のパターン
+					continue
+				}
+				j := i
+				for ; j < len(lines); j++ {
+					if lines[j] == "}" {
+						break
+					}
+				}
+				i = j + 1
+			} else {
+				usedVars[currentVariableName].declared = true
+			}
 
-		if i >= len(lines) {
-			break
+			if i >= len(lines) {
+				break
+			}
+
+			if !(len(variableFileLines) == 0 && lines[i] == "") {
+				// ファイル先頭の空行は読み飛ばす
+				variableFileLines = append(variableFileLines, lines[i])
+			}
 		}
-		variableFileLines = append(variableFileLines, lines[i])
 	}
 
-	var unDeclaredVars []string
+	unDeclaredVarsLine := make([]string, 0, len(usedVars))
 	for k, v := range usedVars {
 		if !v.declared {
-			unDeclaredVars = append(unDeclaredVars, fmt.Sprintf(outputTemplate, k))
+			unDeclaredVarsLine = append(unDeclaredVarsLine, fmt.Sprintf(outputTemplate, k))
 		}
 	}
-	return strings.Join(variableFileLines, "\n") + strings.Join(unDeclaredVars, "\n"), unusedVariables, nil
+	sort.Slice(unDeclaredVarsLine, func(i, j int) bool {
+		return unDeclaredVarsLine[i] < unDeclaredVarsLine[j]
+	})
+
+	variableFileLines = append(variableFileLines, unDeclaredVarsLine...)
+	return strings.Join(variableFileLines, "\n"), unusedVariables, nil
 }
 
 // not implemented %{}

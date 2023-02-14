@@ -35,7 +35,7 @@ func TestRebuildDeclaredVariablesSync(t *testing.T) {
 `,
 		},
 		{
-			name: "collect simple variables",
+			name: "collect simple variables2",
 			in: input{
 				file: `variable "foobar" {}
 variable "foo" {}
@@ -52,7 +52,7 @@ variable "wasabi" {}
 `,
 		},
 		{
-			name: "collect simple variables",
+			name: "collect simple variables3",
 			in: input{
 				file: `variable "region" {
 	description = "region"
@@ -68,8 +68,7 @@ variable "environment" {
 					"environment": {},
 				},
 			},
-			out: `
-variable "environment" {
+			out: `variable "environment" {
 	description = "foo"
 }
 `,
@@ -96,9 +95,7 @@ variable "book" {
 					"environment": {},
 				},
 			},
-			out: `
-
-variable "environment" {
+			out: `variable "environment" {
 	description = "foo"
 }
 
@@ -122,8 +119,7 @@ variable "environment" {
 					"environment": {},
 				},
 			},
-			out: `
-# variable "region" {
+			out: `# variable "region" {
 # 	description = "region"
 #
 # 	default     = "ap-northeast-1"
@@ -154,10 +150,7 @@ variable "book" {
 `,
 				usedVars: map[string]*usedVar{},
 			},
-			out: `
-
-
-`,
+			out: ``,
 		},
 	}
 
@@ -166,6 +159,143 @@ variable "book" {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result, _, err := rebuildDeclaredVariables(bufio.NewReader(strings.NewReader(tt.in.file)), tt.in.usedVars, true)
+			assert.NoError(t, err, tt.name)
+			assert.Equal(t, tt.out, result, tt.name)
+		})
+	}
+}
+
+func TestRebuildDeclaredVariablesNotSync(t *testing.T) {
+	t.Parallel()
+
+	type input struct {
+		usedVars map[string]*usedVar
+		file     string
+	}
+	type testCase struct {
+		name string
+		in   input
+		out  string
+	}
+
+	cases := []testCase{
+		{
+			name: "collect simplest variable",
+			in: input{
+				file: `variable "foobar" {}
+`,
+				usedVars: map[string]*usedVar{
+					"foobar": {},
+				},
+			},
+			out: `variable "foobar" {}
+`,
+		},
+		{
+			name: "collect simple variables2",
+			in: input{
+				file: `variable "foobar" {}
+variable "foo" {}
+variable "bar" {}
+variable "wasabi" {}
+`,
+				usedVars: map[string]*usedVar{
+					"foobar": {},
+					"wasabi": {},
+				},
+			},
+			out: `variable "foobar" {}
+variable "foo" {}
+variable "bar" {}
+variable "wasabi" {}
+`,
+		},
+		{
+			name: "collect simple variables3",
+			in: input{
+				file: `variable "region" {
+#	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+`,
+				usedVars: map[string]*usedVar{
+					"environment": {},
+				},
+			},
+			out: `variable "region" {
+#	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+`,
+		},
+		{
+			name: "append undeclared var",
+			in: input{
+				file: `variable "region" {
+#	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+`,
+				usedVars: map[string]*usedVar{
+					"environment": {},
+					"book":        {},
+				},
+			},
+			out: `variable "region" {
+#	description = "region"
+
+	default     = "ap-northeast-1"
+}
+
+variable "environment" {
+	description = "foo"
+}
+
+variable "book" {
+	description = ""
+}
+`,
+		},
+		{
+			name: "generate full variables.tf",
+			in: input{
+				file: ``,
+				usedVars: map[string]*usedVar{
+					"region":      {},
+					"environment": {},
+				},
+			},
+			out: `variable "environment" {
+	description = ""
+}
+
+variable "region" {
+	description = ""
+}
+`,
+		},
+	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, _, err := rebuildDeclaredVariables(bufio.NewReader(strings.NewReader(tt.in.file)), tt.in.usedVars, false)
 			assert.NoError(t, err, tt.name)
 			assert.Equal(t, tt.out, result, tt.name)
 		})
