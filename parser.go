@@ -16,7 +16,7 @@ var (
 	varInQuotePattern      = regexp.MustCompile(`[^$]\${var\.([\w-]*).*?}`)
 	heredocPattern         = regexp.MustCompile(`<<-?([^"]*)`)
 	outputTemplate         = `variable "%s" {
-	description = ""
+  description = ""
 }
 `
 )

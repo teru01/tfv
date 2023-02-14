@@ -55,13 +55,13 @@ variable "wasabi" {}
 			name: "collect simple variables3",
 			in: input{
 				file: `variable "region" {
-	description = "region"
+  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 				usedVars: map[string]*usedVar{
@@ -69,7 +69,7 @@ variable "environment" {
 				},
 			},
 			out: `variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 		},
@@ -78,17 +78,17 @@ variable "environment" {
 			in: input{
 				file: `
 variable "region" {
-	description = "region"
+  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 
 variable "book" {
-	description = "book"
+  description = "book"
 }
 `,
 				usedVars: map[string]*usedVar{
@@ -96,7 +96,7 @@ variable "book" {
 				},
 			},
 			out: `variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 
 `,
@@ -106,13 +106,13 @@ variable "book" {
 			in: input{
 				file: `
 # variable "region" {
-# 	description = "region"
+#   description = "region"
 #
-# 	default     = "ap-northeast-1"
+#   default     = "ap-northeast-1"
 # }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 				usedVars: map[string]*usedVar{
@@ -120,13 +120,13 @@ variable "environment" {
 				},
 			},
 			out: `# variable "region" {
-# 	description = "region"
+#   description = "region"
 #
-# 	default     = "ap-northeast-1"
+#   default     = "ap-northeast-1"
 # }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 		},
@@ -135,17 +135,17 @@ variable "environment" {
 			in: input{
 				file: `
 variable "region" {
-	description = "region"
+  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 
 variable "book" {
-	description = "book"
+  description = "book"
 }
 `,
 				usedVars: map[string]*usedVar{},
@@ -214,13 +214,13 @@ variable "wasabi" {}
 			name: "collect simple variables3",
 			in: input{
 				file: `variable "region" {
-#	description = "region"
+#  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 				usedVars: map[string]*usedVar{
@@ -228,13 +228,13 @@ variable "environment" {
 				},
 			},
 			out: `variable "region" {
-#	description = "region"
+#  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 		},
@@ -242,13 +242,13 @@ variable "environment" {
 			name: "append undeclared var",
 			in: input{
 				file: `variable "region" {
-#	description = "region"
+#  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 `,
 				usedVars: map[string]*usedVar{
@@ -257,17 +257,17 @@ variable "environment" {
 				},
 			},
 			out: `variable "region" {
-#	description = "region"
+#  description = "region"
 
-	default     = "ap-northeast-1"
+  default     = "ap-northeast-1"
 }
 
 variable "environment" {
-	description = "foo"
+  description = "foo"
 }
 
 variable "book" {
-	description = ""
+  description = ""
 }
 `,
 		},
@@ -281,11 +281,11 @@ variable "book" {
 				},
 			},
 			out: `variable "environment" {
-	description = ""
+  description = ""
 }
 
 variable "region" {
-	description = ""
+  description = ""
 }
 `,
 		},
