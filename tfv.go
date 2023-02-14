@@ -12,10 +12,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var outputTemplate = `variable "%s" {
-  description = ""
-}`
-
 type tfVariable struct {
 	block string
 	used  bool

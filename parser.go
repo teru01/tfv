@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -13,6 +14,10 @@ var (
 	quoteSeparationPattern = regexp.MustCompile(`".*?[^\\]"|[^"\s]+`)
 	varInQuotePattern      = regexp.MustCompile(`[^$]\${var\.([\w-]*).*?}`)
 	heredocPattern         = regexp.MustCompile(`<<-?([^"]*)`)
+	outputTemplate         = `variable "%s" {
+	description = ""
+}
+`
 )
 
 func collectDeclaredVariables(reader io.Reader) (tfVariables, error) {
@@ -129,7 +134,14 @@ func rebuildDeclaredVariables(reader io.Reader, usedVars usedVariables, sync boo
 		}
 		variableFileLines = append(variableFileLines, lines[i])
 	}
-	return strings.Join(variableFileLines, "\n"), unusedVariables, nil
+
+	var unDeclaredVars []string
+	for k, v := range usedVars {
+		if !v.declared {
+			unDeclaredVars = append(unDeclaredVars, fmt.Sprintf(outputTemplate, k))
+		}
+	}
+	return strings.Join(variableFileLines, "\n") + strings.Join(unDeclaredVars, "\n"), unusedVariables, nil
 }
 
 // not implemented %{}
