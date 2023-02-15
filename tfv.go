@@ -85,13 +85,14 @@ func rebuildVariableFile(usedVars usedVariables, path string, sync bool) (string
 	file, err := os.Open(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return "", nil, fmt.Errorf("open %v: %w", path, err)
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		file = nil
 	} else {
 		defer file.Close()
 	}
 
+	if errors.Is(err, os.ErrNotExist) {
+		l := generateUndeclaredVariables(usedVars)
+		return strings.Join(l, "\n"), make(map[string]struct{}), nil
+	}
 	declaredVars, unusedVariables, err := rebuildDeclaredVariables(file, usedVars, sync)
 	if err != nil {
 		return "", nil, fmt.Errorf("collect declared variables: %w", err)

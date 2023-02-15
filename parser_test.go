@@ -329,6 +329,10 @@ func TestCollectUsedVars(t *testing.T) {
 	env = "dev"
 }
 
+resource "my_resource" "myvar" {
+	url        = "http://semvar.co.jp/${var.appname}/${var.env}"
+}  
+
 # Firehose var.hose
 resource "aws_cloudwatch_log_group" "sample" {
 	name              = "/aws/kinesisfirehose/myvar/${var.hoge}"
@@ -336,6 +340,8 @@ resource "aws_cloudwatch_log_group" "sample" {
 	value = foovar.value
 }`,
 			out: map[string]struct{}{
+				"appname":        {},
+				"env":            {},
 				"hoge":           {},
 				"retention_days": {},
 			},

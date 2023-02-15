@@ -81,6 +81,12 @@ func rebuildDeclaredVariables(reader io.Reader, usedVars usedVariables, sync boo
 		}
 	}
 
+	unDeclaredVarsLine := generateUndeclaredVariables(usedVars)
+	variableFileLines = append(variableFileLines, unDeclaredVarsLine...)
+	return strings.Join(variableFileLines, "\n"), unusedVariables, nil
+}
+
+func generateUndeclaredVariables(usedVars usedVariables) []string {
 	unDeclaredVarsLine := make([]string, 0, len(usedVars))
 	for k, v := range usedVars {
 		if !v.declared {
@@ -90,9 +96,7 @@ func rebuildDeclaredVariables(reader io.Reader, usedVars usedVariables, sync boo
 	sort.Slice(unDeclaredVarsLine, func(i, j int) bool {
 		return unDeclaredVarsLine[i] < unDeclaredVarsLine[j]
 	})
-
-	variableFileLines = append(variableFileLines, unDeclaredVarsLine...)
-	return strings.Join(variableFileLines, "\n"), unusedVariables, nil
+	return unDeclaredVarsLine
 }
 
 // not implemented %{}
