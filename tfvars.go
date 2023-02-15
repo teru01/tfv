@@ -64,7 +64,13 @@ func buildTfVars(file io.Reader, keysToDelete map[string]struct{}) (string, erro
 			v := tfVarsList[varsI]
 			varsI++
 			if _, ok := keysToDelete[v.name]; ok {
-				i = v.end - 1
+				for i = v.end; i < len(lines); i++ {
+					if lines[i] != "" {
+						break
+					}
+				}
+				// 非空白行に遭遇すると1行読み戻す
+				i--
 				continue
 			}
 		}

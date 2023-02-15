@@ -36,7 +36,7 @@ func main() {
 			&cli.StringFlag{
 				Name:  "suffix",
 				Value: ".generated",
-				Usage: "suffix of generated files",
+				Usage: "suffix of generated tfvars files",
 			},
 		},
 		Name:  "tfv",

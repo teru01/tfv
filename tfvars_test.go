@@ -93,7 +93,6 @@ qwerty = [
 	"aaa",
 	"bbb",
 ]
-
 # something = {
 # 	editer = "vscode"
 # }
