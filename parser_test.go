@@ -98,7 +98,6 @@ variable "book" {
 			out: `variable "environment" {
   description = "foo"
 }
-
 `,
 		},
 		{

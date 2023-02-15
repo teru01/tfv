@@ -62,17 +62,21 @@ func rebuildDeclaredVariables(reader io.Reader, usedVars usedVariables, sync boo
 					}
 				}
 				i = j + 1
+
+				// 読み飛ばし後の空行も不要なので読み飛ばす
+				for ; i < len(lines); i++ {
+					if lines[i] != "" {
+						// 1行読み戻す
+						i--
+						break
+					}
+				}
 			} else {
 				usedVars[currentVariableName].declared = true
-			}
-
-			if i >= len(lines) {
-				break
-			}
-
-			if !(len(variableFileLines) == 0 && lines[i] == "") {
-				// ファイル先頭の空行は読み飛ばす
-				variableFileLines = append(variableFileLines, lines[i])
+				if !(len(variableFileLines) == 0 && lines[i] == "") {
+					// ファイル先頭の空行は読み飛ばす
+					variableFileLines = append(variableFileLines, lines[i])
+				}
 			}
 		}
 	}
