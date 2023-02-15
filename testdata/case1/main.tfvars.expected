@@ -1,0 +1,9 @@
+env = "prd"
+
+// 地名
+locations = [
+  "osaka",
+  "aomori",
+  # "kanagawa"
+  "chiba"
+]
