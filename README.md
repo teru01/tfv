@@ -7,8 +7,8 @@ tfv generates Terraform's variables.tf file from the variables used like `var.fo
 # Installation
 
 ```
-$ curl -LO https://github.com/teru01/tfv/releases/download/v0.1.0/tfv_0.1.0_[OS]_[ARCH].tar.gz
-$ tar -xvf tfv_0.1.0_[OS]_[ARCH].tar.gz
+$ curl -LO https://github.com/teru01/tfv/releases/download/v0.1.1/tfv_0.1.1_[OS]_[ARCH].tar.gz
+$ tar -xvf tfv_0.1.1_[OS]_[ARCH].tar.gz
 $ mv tfv /usr/local/bin
 ```
 
