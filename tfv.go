@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -82,10 +83,14 @@ func collectAllUsedVariables(dir string) (usedVariables, error) {
 
 func rebuildVariableFile(usedVars usedVariables, path string, sync bool) (string, map[string]struct{}, error) {
 	file, err := os.Open(path)
-	if err != nil {
-		return "", nil, err //fmt.Errorf("%w", err)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", nil, fmt.Errorf("open %v: %w", path, err)
 	}
-	defer file.Close()
+	if errors.Is(err, os.ErrNotExist) {
+		file = nil
+	} else {
+		defer file.Close()
+	}
 
 	declaredVars, unusedVariables, err := rebuildDeclaredVariables(file, usedVars, sync)
 	if err != nil {
