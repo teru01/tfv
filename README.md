@@ -18,6 +18,8 @@ go install github.com/teru01/tfv@latest
 
 # Usage
 
+You have to execute `$ terraform fmt` before executing tfv.
+
 ```
 $ ./tfv -h
 NAME:
