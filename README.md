@@ -2,8 +2,6 @@
 
 tfv generates and/or removes Terraform variable declarations from `var.foo` in *.tf files that are not already declared.
 
-tfv generates Terraform's variables.tf file from the variables used like `var.foo` in the *.tf file
-
 # Installation
 
 ```
